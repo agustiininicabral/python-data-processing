@@ -1,4 +1,6 @@
 import json
+import runpy
+import sys
 
 import pandas as pd
 import pytest
@@ -45,6 +47,11 @@ def test_clean_data_does_not_mutate_input(sample_frame):
     pd.testing.assert_frame_equal(sample_frame, original)
 
 
+def test_clean_data_rejects_missing_schema():
+    with pytest.raises(DataValidationError, match="required schema"):
+        clean_data(pd.DataFrame({"order_id": ["A-001"]}))
+
+
 def test_summary_metrics(sample_frame):
     accepted, rejected = clean_data(sample_frame)
     summary = build_summary(accepted, rejected, len(sample_frame))
@@ -53,6 +60,7 @@ def test_summary_metrics(sample_frame):
     assert summary["rejected_rows"] == 5
     assert summary["total_revenue"] == 325.0
     assert summary["average_order_value"] == pytest.approx(108.33, abs=0.01)
+    assert summary["rejection_reasons"]["duplicate_order_id"] == 1
 
 
 def test_monthly_revenue(sample_frame):
@@ -68,6 +76,13 @@ def test_load_data_rejects_missing_columns(tmp_path):
     source = tmp_path / "bad.csv"
     pd.DataFrame({"order_id": ["A"]}).to_csv(source, index=False)
     with pytest.raises(DataValidationError, match="Missing required columns"):
+        load_data(source)
+
+
+def test_load_data_rejects_malformed_csv(tmp_path):
+    source = tmp_path / "malformed.csv"
+    source.write_text('order_id,order_date,product,quantity,unit_price\n"A-001,2025-01-01,Mouse,1,10\n')
+    with pytest.raises(DataValidationError, match="Could not parse CSV"):
         load_data(source)
 
 
@@ -92,6 +107,18 @@ def test_empty_dataset_has_zero_metrics():
     empty = pd.DataFrame(columns=["order_id", "order_date", "product", "quantity", "unit_price"])
     accepted, rejected = clean_data(empty)
     summary = build_summary(accepted, rejected, 0)
+    assert accepted.empty
+    assert rejected.empty
     assert summary["acceptance_rate"] == 0.0
     assert summary["total_revenue"] == 0.0
     assert monthly_revenue(accepted).empty
+
+
+def test_module_entrypoint_runs_cli(tmp_path, sample_frame, monkeypatch, capsys):
+    source = tmp_path / "sales.csv"
+    output = tmp_path / "cli-output"
+    sample_frame.to_csv(source, index=False)
+    monkeypatch.setattr(sys, "argv", ["data_processing", "--input", str(source), "--output", str(output)])
+    runpy.run_module("data_processing", run_name="__main__")
+    assert '"accepted_rows": 3' in capsys.readouterr().out
+    assert (output / "summary.json").is_file()
