@@ -1,0 +1,13 @@
+order_id,order_date,product,quantity,unit_price
+SO-1001,2025-01-05,Keyboard,2,49.90
+SO-1002,2025-01-08,Mouse,3,18.50
+SO-1003,2025-01-14,Monitor,1,219.00
+SO-1004,2025-02-02,Webcam,2,65.00
+SO-1005,2025-02-11,Headset,1,89.90
+SO-1006,2025-02-18,Keyboard,1,49.90
+SO-1006,2025-02-19,Keyboard,1,49.90
+SO-1007,invalid-date,USB Hub,2,22.00
+SO-1008,2025-02-21,Desk Mat,0,15.00
+SO-1009,2025-03-03, ,1,12.00
+SO-1010,2025-03-06,SSD,2,79.99
+SO-1011,2025-03-10,Microphone,1,-35.00
