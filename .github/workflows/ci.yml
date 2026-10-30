@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run tests with coverage
+        run: python -m pytest --cov=data_processing --cov-report=term-missing
+      - name: Run sample pipeline
+        run: |
+          python -m data_processing --input data/raw/sales.csv --output outputs
+          test -s outputs/cleaned_sales.csv
+          test -s outputs/rejected_sales.csv
+          test -s outputs/monthly_revenue.csv
+          test -s outputs/summary.json
