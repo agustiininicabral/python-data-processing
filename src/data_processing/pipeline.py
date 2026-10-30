@@ -1,4 +1,4 @@
-"""CLI and transformation functions for the sample sales dataset."""
+""""CLI and transformation functions for the sample sales dataset."""
 
 from __future__ import annotations
 
@@ -65,7 +65,9 @@ def clean_data(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         elif not reasons[position]:
             seen.add(str(order_id))
 
-    rejected_mask = np.array([bool(items) for items in reasons])
+    # Explicit bool dtype is required for empty datasets (NumPy otherwise
+    # infers float64 for an empty list, which cannot be inverted with ~).
+    rejected_mask = np.asarray([bool(items) for items in reasons], dtype=bool)
     rejected = data.loc[rejected_mask].copy()
     rejected["rejection_reason"] = [
         ";".join(items) for items, is_rejected in zip(reasons, rejected_mask) if is_rejected
